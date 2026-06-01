@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive AI Chatbot</title>
+    <style>
+        /* --- RESET & VARIABLES --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b);
+            --panel-bg: rgba(255, 255, 255, 0.06);
+            --panel-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --user-msg: #312e81;
+            --bot-msg: #1e293b;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* --- AUTH SCREEN --- */
+        .auth-container {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            padding: 2.5rem;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 0.85rem;
+            background: var(--accent);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 1rem;
+        }
+
+        .auth-btn:hover { background: var(--accent-hover); }
+        .auth-btn:active { transform: scale(0.98); }
+
+        /* --- CHAT DASHBOARD --- */
+        .chat-interface {
+            display: none; /* Hidden initially */
+            width: 100vw;
+            height: 100vh;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Top Navigation Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: 0.5px;
+        }
+
+        .user-profile {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            border: 1px solid var(--panel-border);
+        }
+
+        /* Chat Workspace */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            overflow: hidden;
+        }
+
+        .messages-box {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .messages-box::-webkit-scrollbar { display: none; }
+        .messages-box { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .message {
+            max-width: 75%;
+            padding: 1rem 1.25rem;
+            border-radius: 18px;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .message.user {
+            background: var(--user-msg);
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            background: var(--bot-msg);
+            align-self: flex-start;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--panel-border);
+        }
+
+        /* Input Deck */
+        .input-area {
+            display: flex;
+            gap: 0.75rem;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 0.75rem;
+            border-radius: 16px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .input-area input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            padding: 0.5rem;
+        }
+
+        .input-area input:focus { outline: none; }
+
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover { background: var(--accent-hover); }
+
+        /* --- RESPONSIVE BREAKPOINTS --- */
+        @media (max-width: 768px) {
+            .navbar { padding: 1rem; }
+            .message { max-width: 85%; }
+            .chat-container { padding: 1rem 0.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .auth-container { padding: 1.5rem; }
+            .auth-header h2 { font-size: 1.75rem; }
+            .message { max-width: 90%; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container" id="authScreen">
+        <div class="auth-header">
+            <h2>Welcome</h2>
+            <p style="color: var(--text-muted); margin-top: 0.25rem;">Sign up or Log in to chat</p>
+        </div>
+        <form id="authForm" onsubmit="handleAuth(event)">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required placeholder="Enter any name...">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="auth-btn">Get Started</button>
+        </form>
+    </div>
+
+    <div class="chat-interface" id="chatScreen">
+        <nav class="navbar">
+            <div class="brand">✨ CoreAI</div>
+            <div class="user-profile" id="userDisplay">Hi, User!</div>
+        </nav>
+
+        <div class="chat-container">
+            <div class="messages-box" id="messagesBox">
+                </div>
+
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Ask me anything..." autocomplete="off">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Local Dictionary simulating a flat-file database or prompt mapping structure.
+        // You can edit or add custom responses right here.
+        const botKnowledgeBase = {
+            "hello": "Hello there! How can I assist you on this fine day?",
+            "hi": "Hey! Great to see you. What's on your mind?",
+            "how are you": "I am operating at peak efficiency! Thanks for asking. How are you?",
+            "what is ai": "Artificial Intelligence is the simulation of human intelligence microprocesses by computer systems.",
+            "who made you": "I am a custom AI chatbot experience built with pure HTML, CSS, and modern JavaScript.",
+            "help": "You can ask me questions like 'What is AI?', 'Who made you?', or just say 'Hi'!",
+            "clear": "Clearing the screen won't change my memory, but you can reload the page if you want a fresh start!"
+        };
+
+        const defaultFallbackResponse = "I am processing that prompt, but it doesn't match my current dataset entries. Try asking 'help' to see what I know!";
+
+        // Handle Form Log In Authentication
+        function handleAuth(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('username').value.trim();
+            
+            if(usernameInput) {
+                // Personalize Top Right UI Corner Status
+                document.getElementById('userDisplay').innerText = `Hi, ${usernameInput}!`;
+                
+                // Trigger transition animations by shifting displays
+                document.getElementById('authScreen').style.display = 'none';
+                const chatScreen = document.getElementById('chatScreen');
+                chatScreen.style.display = 'flex';
+
+                // Send Initial Greeting
+                sendBotInitialGreeting(usernameInput);
+            }
+        }
+
+        // Output Initial Bot Message onto Workspace
+        function sendBotInitialGreeting(username) {
+            const msgBox = document.getElementById('messagesBox');
+            const greetingElement = document.createElement('div');
+            greetingElement.className = 'message bot';
+            greetingElement.innerText = `Welcome inside, ${username}. I am your offline AI Assistant. Ask me anything, or type 'help' to discover options!`;
+            msgBox.appendChild(greetingElement);
+        }
+
+        // Process message lifecycle
+        function sendMessage() {
+            const inputField = document.getElementById('userInput');
+            const queryText = inputField.value.trim();
+
+            if (!queryText) return; // Prevent empty loops
+
+            const msgBox = document.getElementById('messagesBox');
+
+            // 1. Render User Bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = 'message user';
+            userBubble.innerText = queryText;
+            msgBox.appendChild(userBubble);
+
+            // Clean the entry node field immediately
+            inputField.value = '';
+
+            // Auto Scroll view down to align viewing field
+            msgBox.scrollTop = msgBox.scrollHeight;
+
+            // 2. Compute response from dictionary after simulated thinking latency delay
+            setTimeout(() => {
+                // Normalize queries (lowercase and stripping extra punctuation symbols)
+                const cleanQuery = queryText.toLowerCase().replace(/[?.,!]/g, "");
+                
+                let botAnswer = botKnowledgeBase[cleanQuery];
+                
+                if (!botAnswer) {
+                    botAnswer = defaultFallbackResponse;
+                }
+
+                // Render Bot Bubble
+                const botBubble = document.createElement('div');
+                botBubble.className = 'message bot';
+                botBubble.innerText = botAnswer;
+                msgBox.appendChild(botBubble);
+                
+                // Scroll again
+                msgBox.scrollTop = msgBox.scrollHeight;
+            }, 450); // 450ms animation pause feel
+        }
+
+        // Bind Enter key down directly into input submission lane
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
